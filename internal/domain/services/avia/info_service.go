@@ -16,7 +16,7 @@ func NewInfoService(repo repos.InfoRepository) *InfoService {
 	return &InfoService{repo: repo}
 }
 
-func (s *InfoService) GetCities(ctx context.Context, query string) ([]models.City, error) {
+func (s *InfoService) GetCities(ctx context.Context, query string) ([]string, error) {
 	return s.repo.GetCities(ctx, query)
 }
 
