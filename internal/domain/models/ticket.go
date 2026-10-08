@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type ReservationStatus string
 
 const (
@@ -16,4 +18,5 @@ type Ticket struct {
 	Seat              string
 	Flight            Flight
 	ReservationStatus ReservationStatus
+	UpdatedAt         time.Time
 }

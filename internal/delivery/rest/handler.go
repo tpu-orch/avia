@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -25,25 +26,21 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 
 func (h *Handler) SearchCities(c *gin.Context) {
 	query := c.Query("query")
-	if query != "" && (len(query) < 1 || len(query) > 100) {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    "INVALID_PARAMETER",
-			Message: "Query parameter must be between 1 and 100 characters.",
-		})
-		return
-	}
 
 	cities, err := h.infoService.GetCities(c.Request.Context(), query)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidParameter) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Code:    "INVALID_PARAMETER",
+				Message: err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    "INTERNAL_ERROR",
 			Message: err.Error(),
 		})
 		return
-	}
-
-	if cities == nil {
-		cities = []string{}
 	}
 
 	c.JSON(http.StatusOK, cities)
@@ -53,24 +50,15 @@ func (h *Handler) SearchTickets(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 
-	if from == "" || to == "" {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    "INVALID_PARAMETER",
-			Message: "Parameters 'from' and 'to' are required.",
-		})
-		return
-	}
-
-	if len(from) > 100 || len(to) > 100 {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Code:    "INVALID_PARAMETER",
-			Message: "City names cannot exceed 100 characters.",
-		})
-		return
-	}
-
 	tickets, err := h.infoService.GetTickets(c.Request.Context(), from, to)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidParameter) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Code:    "INVALID_PARAMETER",
+				Message: err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Code:    "INTERNAL_ERROR",
 			Message: err.Error(),
@@ -118,7 +106,7 @@ func (h *Handler) SearchTickets(c *gin.Context) {
 func (h *Handler) GetReservationStatus(c *gin.Context) {
 	ticketIDStr := c.Param("ticketId")
 	ticketID, err := strconv.ParseInt(ticketIDStr, 10, 64)
-	if err != nil || ticketID < 1 {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
 			Code:    "INVALID_PARAMETER",
 			Message: "Invalid ticket ID.",
@@ -128,9 +116,23 @@ func (h *Handler) GetReservationStatus(c *gin.Context) {
 
 	status, updatedAt, err := h.infoService.GetReservationStatus(c.Request.Context(), ticketID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{
-			Code:    "NOT_FOUND",
-			Message: "Ticket not found.",
+		if errors.Is(err, service.ErrInvalidParameter) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Code:    "INVALID_PARAMETER",
+				Message: err.Error(),
+			})
+			return
+		}
+		if errors.Is(err, service.ErrTicketNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Code:    "NOT_FOUND",
+				Message: "Ticket not found.",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Code:    "INTERNAL_ERROR",
+			Message: err.Error(),
 		})
 		return
 	}

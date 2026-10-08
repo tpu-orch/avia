@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	restapp "github.com/tpu-orch/avia/internal/app/rest"
@@ -33,7 +32,7 @@ func New(configPath string) (*App, error) {
 
 	// Run migrations
 	if err := db.RunMigrations(cfg.Postgres.DSN, "migrations"); err != nil {
-		log.Printf("warning: run migrations: %v", err)
+		logger.Error("run migrations warning", err)
 	}
 
 	dbPool, err := db.NewPostgresPool(ctx, cfg.Postgres)
@@ -41,13 +40,13 @@ func New(configPath string) (*App, error) {
 		return nil, fmt.Errorf("init postgres pool: %w", err)
 	}
 
-	infoRepo := repos.NewPostgresInfoRepo(dbPool)
-	infoService := service.NewInfoService(infoRepo)
-	_ = service.NewAviaService(infoRepo)
+	ticketRepo := repos.NewPostgresTicketRepo(dbPool)
+	infoService := service.NewInfoService(ticketRepo)
+	_ = service.NewAviaService(ticketRepo)
 
 	handler := rest.NewHandler(infoService)
 
-	httpApp, err := restapp.New(cfg.HTTP.Address, handler)
+	httpApp, err := restapp.New(cfg.HTTP.Address, handler, logger)
 	if err != nil {
 		dbPool.Close()
 		return nil, fmt.Errorf("init http app: %w", err)
@@ -67,7 +66,7 @@ func (a *App) Run() error {
 func (a *App) Stop(ctx context.Context) {
 	if a.httpApp != nil {
 		if err := a.httpApp.Stop(ctx); err != nil {
-			log.Printf("error stopping http app: %v", err)
+			a.logger.Error("error stopping http app", err)
 		}
 	}
 	if a.dbPool != nil {
