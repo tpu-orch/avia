@@ -9,3 +9,10 @@ postgres:
   min_conns: 2
   max_conn_lifetime: 1h
   connect_timeout: 5s
+
+kafka:
+  brokers: []
+  reserve_topic: ""
+  cancel_topic: ""
+  reservation_status_topic: ""
+  group_id: ""

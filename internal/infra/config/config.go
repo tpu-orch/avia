@@ -11,7 +11,7 @@ import (
 type Config struct {
 	HTTP     HTTPConfig     `yaml:"http"`
 	Postgres PostgresConfig `yaml:"postgres"`
-	// Kafka    KafkaConfig    `yaml:"kafka"`
+	Kafka    KafkaConfig    `yaml:"kafka"`
 }
 
 type HTTPConfig struct {
@@ -28,11 +28,13 @@ type PostgresConfig struct {
 	ConnectTimeout  time.Duration `yaml:"connect_timeout"`
 }
 
-// type KafkaConfig struct {
-// 	Brokers []string `yaml:"brokers"`
-// 	GroupID string   `yaml:"group_id"`
-// 	Topic   string   `yaml:"topic"`
-// }
+type KafkaConfig struct {
+	Brokers                []string
+	ReserveTopic           string
+	CancelTopic            string
+	ReservationStatusTopic string
+	GroupID                string
+}
 
 func Load(path string) (*Config, error) {
 	content, err := os.ReadFile(path)
