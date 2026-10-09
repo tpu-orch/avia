@@ -20,18 +20,17 @@ type TicketRepository interface {
 	GetCities(ctx context.Context, query string) ([]string, error)
 	GetTicketsByRoute(ctx context.Context, fromCity, toCity string) ([]models.Ticket, error)
 	GetTicketByID(ctx context.Context, ticketID int64) (*models.Ticket, error)
-	UpdateTicketStatus(ctx context.Context, ticketID int64, status models.ReservationStatus) error
 }
 
-type InfoService struct {
+type TicketQueryService struct {
 	repo TicketRepository
 }
 
-func NewInfoService(repo TicketRepository) *InfoService {
-	return &InfoService{repo: repo}
+func NewTicketQueryService(repo TicketRepository) *TicketQueryService {
+	return &TicketQueryService{repo: repo}
 }
 
-func (s *InfoService) GetCities(ctx context.Context, query string) ([]string, error) {
+func (s *TicketQueryService) GetCities(ctx context.Context, query string) ([]string, error) {
 	query = strings.TrimSpace(query)
 	if len(query) > 100 {
 		return nil, fmt.Errorf("%w: query parameter cannot exceed 100 characters", ErrInvalidParameter)
@@ -47,7 +46,7 @@ func (s *InfoService) GetCities(ctx context.Context, query string) ([]string, er
 	return cities, nil
 }
 
-func (s *InfoService) GetTickets(ctx context.Context, from, to string) ([]models.Ticket, error) {
+func (s *TicketQueryService) GetTickets(ctx context.Context, from, to string) ([]models.Ticket, error) {
 	from = strings.TrimSpace(from)
 	to = strings.TrimSpace(to)
 
@@ -81,7 +80,7 @@ func (s *InfoService) GetTickets(ctx context.Context, from, to string) ([]models
 	return availableTickets, nil
 }
 
-func (s *InfoService) GetReservationStatus(ctx context.Context, ticketID int64) (models.ReservationStatus, time.Time, error) {
+func (s *TicketQueryService) GetReservationStatus(ctx context.Context, ticketID int64) (models.ReservationStatus, time.Time, error) {
 	if ticketID < 1 {
 		return "", time.Time{}, fmt.Errorf("%w: invalid ticket ID", ErrInvalidParameter)
 	}

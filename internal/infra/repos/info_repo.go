@@ -173,14 +173,21 @@ func (r *PostgresTicketRepo) GetTicketByID(ctx context.Context, ticketID int64) 
 	return &t, nil
 }
 
-func (r *PostgresTicketRepo) UpdateTicketStatus(ctx context.Context, ticketID int64, status models.ReservationStatus) error {
-	sqlStr, args, err := psql.Update(tableTickets).
+func (r *PostgresTicketRepo) UpdateTicketStatus(ctx context.Context, ticketID int64, status models.ReservationStatus, compositeBookingID *int64) error {
+	qb := psql.Update(tableTickets).
 		Set(colReservationStatus, status).
 		Set(colUpdatedAt, squirrel.Expr("NOW()")).
-		Where(colID+" = ?", ticketID).
-		ToSql()
+		Where(colID+" = ?", ticketID)
+
+	if compositeBookingID == nil {
+		qb = qb.Set("composite_booking_id", nil)
+	} else {
+		qb = qb.Set("composite_booking_id", *compositeBookingID)
+	}
+
+	sqlStr, args, err := qb.ToSql()
 	if err != nil {
-		return fmt.Errorf("build update ticket status query: %w", err)
+		return fmt.Errorf("build update ticket reservation query: %w", err)
 	}
 
 	result, err := r.db.Exec(ctx, sqlStr, args...)

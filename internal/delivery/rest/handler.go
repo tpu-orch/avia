@@ -1,21 +1,32 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tpu-orch/avia/internal/delivery/rest/dto"
+	"github.com/tpu-orch/avia/internal/domain/models"
 	service "github.com/tpu-orch/avia/internal/domain/services/avia"
 )
 
-type Handler struct {
-	infoService *service.InfoService
+type TicketQueryService interface {
+	GetCities(ctx context.Context, query string) ([]string, error)
+	GetTickets(ctx context.Context, from, to string) ([]models.Ticket, error)
+	GetReservationStatus(ctx context.Context, ticketID int64) (models.ReservationStatus, time.Time, error)
 }
 
-func NewHandler(infoService *service.InfoService) *Handler {
-	return &Handler{infoService: infoService}
+type Handler struct {
+	ticketQueryService TicketQueryService
+}
+
+func NewHandler(ticketQueryService TicketQueryService) *Handler {
+	return &Handler{
+		ticketQueryService: ticketQueryService,
+	}
 }
 
 func (h *Handler) RegisterRoutes(r *gin.Engine) {
@@ -27,7 +38,7 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 func (h *Handler) SearchCities(c *gin.Context) {
 	query := c.Query("query")
 
-	cities, err := h.infoService.GetCities(c.Request.Context(), query)
+	cities, err := h.ticketQueryService.GetCities(c.Request.Context(), query)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidParameter) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -50,7 +61,7 @@ func (h *Handler) SearchTickets(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 
-	tickets, err := h.infoService.GetTickets(c.Request.Context(), from, to)
+	tickets, err := h.ticketQueryService.GetTickets(c.Request.Context(), from, to)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidParameter) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
@@ -114,7 +125,7 @@ func (h *Handler) GetReservationStatus(c *gin.Context) {
 		return
 	}
 
-	status, updatedAt, err := h.infoService.GetReservationStatus(c.Request.Context(), ticketID)
+	status, updatedAt, err := h.ticketQueryService.GetReservationStatus(c.Request.Context(), ticketID)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidParameter) {
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
