@@ -29,11 +29,11 @@ type PostgresConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers                []string
-	ReserveTopic           string
-	CancelTopic            string
-	ReservationStatusTopic string
-	GroupID                string
+	Brokers                []string `yaml:"brokers"`
+	ReserveTopic           string   `yaml:"reserve_topic"`
+	CancelTopic            string   `yaml:"cancel_topic"`
+	ReservationStatusTopic string   `yaml:"reservation_status_topic"`
+	GroupID                string   `yaml:"group_id"`
 }
 
 func Load(path string) (*Config, error) {

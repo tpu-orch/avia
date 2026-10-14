@@ -173,7 +173,7 @@ func (r *PostgresTicketRepo) GetTicketByID(ctx context.Context, ticketID int64) 
 	return &t, nil
 }
 
-func (r *PostgresTicketRepo) UpdateTicketStatus(ctx context.Context, ticketID int64, status models.ReservationStatus, compositeBookingID *int64) error {
+func (r *PostgresTicketRepo) UpdateTicketReservation(ctx context.Context, ticketID int64, status models.ReservationStatus, compositeBookingID *int64) error {
 	qb := psql.Update(tableTickets).
 		Set(colReservationStatus, status).
 		Set(colUpdatedAt, squirrel.Expr("NOW()")).
