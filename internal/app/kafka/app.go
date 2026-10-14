@@ -2,9 +2,12 @@ package kafkaapp
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	deliverykafka "github.com/tpu-orch/avia/internal/delivery/kafka"
 	service "github.com/tpu-orch/avia/internal/domain/services/avia"
+	"github.com/tpu-orch/avia/internal/infra/config"
 	"github.com/tpu-orch/avia/internal/infra/observability"
 )
 
@@ -16,7 +19,7 @@ type App struct {
 }
 
 func New(
-	cfg Config,
+	cfg config.KafkaConfig,
 	cmdService *service.TicketCommandService,
 	logger observability.Logger,
 ) *App {
@@ -42,8 +45,8 @@ func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("kafka app started")
 
 	err := a.consumer.Run(ctx)
-	if err != nil && err != context.Canceled {
-		return err
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return fmt.Errorf("run kafka consumer: %w", err)
 	}
 
 	a.logger.Info("kafka app stopped")
@@ -51,11 +54,25 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) Shutdown() error {
+	var shutdownErr error
+
 	if a.consumer != nil {
-		_ = a.consumer.Close()
+		if err := a.consumer.Close(); err != nil {
+			shutdownErr = errors.Join(
+				shutdownErr,
+				fmt.Errorf("close kafka consumer: %w", err),
+			)
+		}
 	}
+
 	if a.producer != nil {
-		_ = a.producer.Close()
+		if err := a.producer.Close(); err != nil {
+			shutdownErr = errors.Join(
+				shutdownErr,
+				fmt.Errorf("close kafka producer: %w", err),
+			)
+		}
 	}
-	return nil
+
+	return shutdownErr
 }
