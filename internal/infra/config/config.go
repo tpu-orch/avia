@@ -76,12 +76,10 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Kafka
-	// if cfg.Kafka.GroupID == "" {
-	// 	cfg.Kafka.GroupID = "analyzer"
-	// }
 	// if len(cfg.Kafka.Brokers) == 0 {
 	// 	return nil, fmt.Errorf("kafka brokers must be configured")
 	// }
+	// TODO: когда будет кафка надо убрать
 
 	return &cfg, nil
 }

@@ -58,8 +58,11 @@ func New(configPath string) (*App, error) {
 		dbPool.Close()
 		return nil, fmt.Errorf("init http app: %w", err)
 	}
-
-	kafkaApp := kafkaapp.New(cfg.Kafka, ticketCommandService, logger)
+	var kafkaApp *kafkaapp.App
+	if len(cfg.Kafka.Brokers) != 0 {
+		kafkaApp = kafkaapp.New(cfg.Kafka, ticketCommandService, logger)
+	}
+	// TODO: когда будет кафка нужно будет переписать
 
 	return &App{
 		httpApp:  httpApp,
@@ -84,19 +87,21 @@ func (a *App) Run(ctx context.Context) error {
 
 		return nil
 	})
+	if a.kafkaApp != nil {
+		g.Go(func() error {
+			err := a.kafkaApp.Run(ctx)
+			if err != nil && !errors.Is(err, context.Canceled) {
+				return fmt.Errorf("kafka app: %w", err)
+			}
 
-	g.Go(func() error {
-		err := a.kafkaApp.Run(ctx)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			return fmt.Errorf("kafka app: %w", err)
-		}
+			if ctx.Err() == nil {
+				return errors.New("kafka app stopped unexpectedly")
+			}
 
-		if ctx.Err() == nil {
-			return errors.New("kafka app stopped unexpectedly")
-		}
-
-		return nil
-	})
+			return nil
+		})
+	}
+	// TODO: когда будет кафка нужно будет переписать
 
 	g.Go(func() error {
 		<-ctx.Done()
