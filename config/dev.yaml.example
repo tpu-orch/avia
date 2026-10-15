@@ -4,7 +4,7 @@ http:
   write_timeout: 10s
 
 postgres:
-  dsn: "host=localhost port=5432 user=postgres password=postgres dbname=mydb sslmode=disable"
+  dsn: "host=postgres port=5432 user=avia_user password=secret123 dbname=avia sslmode=disable"
   max_conns: 10
   min_conns: 2
   max_conn_lifetime: 1h

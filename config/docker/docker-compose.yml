@@ -3,8 +3,6 @@ services:
     image: postgres:17-alpine
     container_name: postgres
     restart: unless-stopped
-    env_file:
-      - pg.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -19,8 +17,8 @@ services:
       start_period: 5s
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: config/docker/Dockerfile
     container_name: avia
     restart: unless-stopped
     depends_on:

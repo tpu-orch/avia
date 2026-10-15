@@ -13,7 +13,10 @@ lint:
 	golangci-lint run
 
 docker-up:
-	docker compose -f config/docker/docker-compose.yml up --build -d
+	docker compose --env-file config/docker/pg.env -f config/docker/docker-compose.yml up --build
 
 docker-down:
 	docker compose -f config/docker/docker-compose.yml down
+
+docker-prune:
+	docker system prune
