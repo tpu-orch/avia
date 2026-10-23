@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Copy application to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" 'mkdir -p /srv/avia'
+          rsync -az \
+            --exclude='.git/' \
+            --exclude='/config/dev.yaml' \
+            --exclude='/config/docker/pg.env' \
+            ./ "$SSH_USER@$SSH_HOST:/srv/avia/"
+
+      - name: Build and start application
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" \
+            'cd /srv/avia && set -eu && if [ ! -f config/dev.yaml ]; then cp config/dev.yaml.example config/dev.yaml; fi && if [ ! -f config/docker/pg.env ]; then cp config/docker/pg.env.example config/docker/pg.env; fi && docker compose --env-file config/docker/pg.env -f config/docker/docker-compose.yml up -d --build'
