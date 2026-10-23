@@ -1,0 +1,18 @@
+http:
+  address: ":8080"
+  read_timeout: 5s
+  write_timeout: 10s
+
+postgres:
+  dsn: "host=postgres port=5432 user=avia_user password=secret123 dbname=avia sslmode=disable"
+  max_conns: 10
+  min_conns: 2
+  max_conn_lifetime: 1h
+  connect_timeout: 5s
+
+kafka:
+  brokers: []
+  reserve_topic: ""
+  cancel_topic: ""
+  reservation_status_topic: ""
+  group_id: ""
