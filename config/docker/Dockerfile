@@ -15,5 +15,5 @@ COPY --from=builder /src/config/dev.yaml /app/config/dev.yaml
 COPY --from=builder /src/migrations /app/migrations
 
 ENV CONFIG_PATH=/app/config/dev.yaml
-EXPOSE 50065
+EXPOSE 8080
 ENTRYPOINT ["/app/avia"]

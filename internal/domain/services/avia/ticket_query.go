@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/tpu-orch/avia/internal/domain/models"
 )
@@ -32,7 +33,7 @@ func NewTicketQueryService(repo TicketRepository) *TicketQueryService {
 
 func (s *TicketQueryService) GetCities(ctx context.Context, query string) ([]string, error) {
 	query = strings.TrimSpace(query)
-	if len(query) > 100 {
+	if utf8.RuneCountInString(query) > 100 {
 		return nil, fmt.Errorf("%w: query parameter cannot exceed 100 characters", ErrInvalidParameter)
 	}
 	// TODO: скорее всего стоит вынести проверку длинны в rules
@@ -54,7 +55,7 @@ func (s *TicketQueryService) GetTickets(ctx context.Context, from, to string) ([
 	if from == "" || to == "" {
 		return nil, fmt.Errorf("%w: parameters 'from' and 'to' are required", ErrInvalidParameter)
 	}
-	if len(from) > 100 || len(to) > 100 {
+	if utf8.RuneCountInString(from) > 100 || utf8.RuneCountInString(to) > 100 {
 		return nil, fmt.Errorf("%w: city names cannot exceed 100 characters", ErrInvalidParameter)
 	}
 	// TODO: тоже самое, мб вынести в rules
