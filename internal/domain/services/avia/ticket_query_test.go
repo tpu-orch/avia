@@ -112,6 +112,17 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 			wantCalls: 1,
 		},
 		{
+			name:  "unicode query at maximum character length",
+			query: strings.Repeat("а", 100),
+			repo: &mockQueryRepo{
+				getCitiesFn: func(_ context.Context, query string) ([]string, error) {
+					return []string{query}, nil
+				},
+			},
+			want:      []string{strings.Repeat("а", 100)},
+			wantCalls: 1,
+		},
+		{
 			name:      "query exceeds maximum length",
 			query:     strings.Repeat("a", 101),
 			repo:      &mockQueryRepo{},
@@ -264,6 +275,30 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 			repo:      &mockQueryRepo{},
 			wantErr:   true,
 			wantErrIs: ErrInvalidParameter,
+		},
+		{
+			name: "100-character unicode departure city",
+			from: strings.Repeat("а", 100),
+			to:   "Tomsk",
+			repo: &mockQueryRepo{
+				getTicketsRouteFn: func(_ context.Context, _, _ string) ([]models.Ticket, error) {
+					return []models.Ticket{}, nil
+				},
+			},
+			want:      []models.Ticket{},
+			wantCalls: 1,
+		},
+		{
+			name: "100-character unicode destination city",
+			from: "Moscow",
+			to:   strings.Repeat("а", 100),
+			repo: &mockQueryRepo{
+				getTicketsRouteFn: func(_ context.Context, _, _ string) ([]models.Ticket, error) {
+					return []models.Ticket{}, nil
+				},
+			},
+			want:      []models.Ticket{},
+			wantCalls: 1,
 		},
 		{
 			name: "trims city names",
