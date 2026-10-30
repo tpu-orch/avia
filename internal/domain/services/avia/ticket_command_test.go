@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/tpu-orch/avia/internal/domain/models"
 )
+
+var ErrRepo = errors.New("database connection lost")
 
 type mockCommandRepo struct {
 	getTicketFn         func(ctx context.Context, ticketID int64) (*models.Ticket, error)
@@ -35,7 +38,7 @@ func TestTicketCommandService_ReserveTicket(t *testing.T) {
 		compositeBookingID int64
 		mockRepo           *mockCommandRepo
 		want               models.ReservationStatus
-		wantErr            bool
+		wantErr            error
 	}{
 		{
 			name:               "success",
@@ -53,7 +56,7 @@ func TestTicketCommandService_ReserveTicket(t *testing.T) {
 				},
 			},
 			want:    models.StatusReservationPending,
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
 			name:               "invalid ticket ID",
@@ -61,7 +64,7 @@ func TestTicketCommandService_ReserveTicket(t *testing.T) {
 			compositeBookingID: 100,
 			mockRepo:           &mockCommandRepo{},
 			want:               "",
-			wantErr:            true,
+			wantErr:            ErrInvalidParameter,
 		},
 		{
 			name:               "ticket not found",
@@ -73,7 +76,7 @@ func TestTicketCommandService_ReserveTicket(t *testing.T) {
 				},
 			},
 			want:    "",
-			wantErr: true,
+			wantErr: ErrTicketNotFound,
 		},
 		{
 			name:               "invalid transition",
@@ -88,17 +91,46 @@ func TestTicketCommandService_ReserveTicket(t *testing.T) {
 				},
 			},
 			want:    "",
-			wantErr: true,
+			wantErr: ErrInvalidStatusTransition,
+		},
+		{
+			name:               "database get ticket error",
+			ticketID:           1,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return nil, ErrRepo
+				},
+			},
+			want:    "",
+			wantErr: ErrRepo,
+		},
+		{
+			name:               "database update reservation status error",
+			ticketID:           1,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return &models.Ticket{
+						ID:                1,
+						ReservationStatus: models.StatusAvailable,
+					}, nil
+				},
+				updateReservationFn: func(ctx context.Context, ticketID int64, status models.ReservationStatus, compositeBookingID *int64) error {
+					return ErrRepo
+				},
+			},
+			want:    "",
+			wantErr: ErrRepo,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			s := NewTicketCommandService(tt.mockRepo)
 			got, err := s.ReserveTicket(context.Background(), tt.ticketID, tt.compositeBookingID)
-			if (err != nil) != tt.wantErr {
+			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("ReserveTicket() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if got != tt.want {
@@ -117,7 +149,7 @@ func TestTicketCommandService_CancelTicket(t *testing.T) {
 		compositeBookingID int64
 		mockRepo           *mockCommandRepo
 		want               models.ReservationStatus
-		wantErr            bool
+		wantErr            error
 	}{
 		{
 			name:               "success from pending",
@@ -135,7 +167,7 @@ func TestTicketCommandService_CancelTicket(t *testing.T) {
 				},
 			},
 			want:    models.StatusAvailable,
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
 			name:               "invalid ticket ID",
@@ -143,17 +175,73 @@ func TestTicketCommandService_CancelTicket(t *testing.T) {
 			compositeBookingID: 100,
 			mockRepo:           &mockCommandRepo{},
 			want:               "",
-			wantErr:            true,
+			wantErr:            ErrInvalidParameter,
+		},
+		{
+			name:               "database get ticket error",
+			ticketID:           1,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return nil, ErrRepo
+				},
+			},
+			want:    "",
+			wantErr: ErrRepo,
+		},
+		{
+			name:               "ticket not found",
+			ticketID:           999,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return nil, ErrNotFound
+				},
+			},
+			want:    "",
+			wantErr: ErrTicketNotFound,
+		},
+		{
+			name:               "invalid transition",
+			ticketID:           1,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return &models.Ticket{
+						ID:                1,
+						ReservationStatus: models.StatusReserved,
+					}, nil
+				},
+			},
+			want:    "",
+			wantErr: ErrInvalidStatusTransition,
+		},
+		{
+			name:               "database update reservation status error",
+			ticketID:           1,
+			compositeBookingID: 100,
+			mockRepo: &mockCommandRepo{
+				getTicketFn: func(ctx context.Context, ticketID int64) (*models.Ticket, error) {
+					return &models.Ticket{
+						ID:                1,
+						ReservationStatus: models.StatusReservationPending,
+					}, nil
+				},
+				updateReservationFn: func(ctx context.Context, ticketID int64, status models.ReservationStatus, compositeBookingID *int64) error {
+					return ErrRepo
+				},
+			},
+			want:    "",
+			wantErr: ErrRepo,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			s := NewTicketCommandService(tt.mockRepo)
 			got, err := s.CancelTicket(context.Background(), tt.ticketID, tt.compositeBookingID)
-			if (err != nil) != tt.wantErr {
+			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("CancelTicket() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if got != tt.want {
