@@ -36,7 +36,6 @@ func (s *TicketQueryService) GetCities(ctx context.Context, query string) ([]str
 	if utf8.RuneCountInString(query) > 100 {
 		return nil, fmt.Errorf("%w: query parameter cannot exceed 100 characters", ErrInvalidParameter)
 	}
-	// TODO: скорее всего стоит вынести проверку длинны в rules
 
 	cities, err := s.repo.GetCities(ctx, query)
 	if err != nil {
@@ -58,7 +57,6 @@ func (s *TicketQueryService) GetTickets(ctx context.Context, from, to string) ([
 	if utf8.RuneCountInString(from) > 100 || utf8.RuneCountInString(to) > 100 {
 		return nil, fmt.Errorf("%w: city names cannot exceed 100 characters", ErrInvalidParameter)
 	}
-	// TODO: тоже самое, мб вынести в rules
 
 	if strings.EqualFold(from, to) {
 		return nil, fmt.Errorf("%w: departure and arrival cities cannot be the same", ErrInvalidParameter)

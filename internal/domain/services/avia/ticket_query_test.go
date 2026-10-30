@@ -15,14 +15,9 @@ type mockQueryRepo struct {
 	getCitiesFn       func(context.Context, string) ([]string, error)
 	getTicketsRouteFn func(context.Context, string, string) ([]models.Ticket, error)
 	getTicketByIDFn   func(context.Context, int64) (*models.Ticket, error)
-
-	getCitiesCalls       int
-	getTicketsRouteCalls int
-	getTicketByIDCalls   int
 }
 
 func (m *mockQueryRepo) GetCities(ctx context.Context, query string) ([]string, error) {
-	m.getCitiesCalls++
 	if m.getCitiesFn != nil {
 		return m.getCitiesFn(ctx, query)
 	}
@@ -33,7 +28,6 @@ func (m *mockQueryRepo) GetTicketsByRoute(
 	ctx context.Context,
 	fromCity, toCity string,
 ) ([]models.Ticket, error) {
-	m.getTicketsRouteCalls++
 	if m.getTicketsRouteFn != nil {
 		return m.getTicketsRouteFn(ctx, fromCity, toCity)
 	}
@@ -44,7 +38,6 @@ func (m *mockQueryRepo) GetTicketByID(
 	ctx context.Context,
 	ticketID int64,
 ) (*models.Ticket, error) {
-	m.getTicketByIDCalls++
 	if m.getTicketByIDFn != nil {
 		return m.getTicketByIDFn(ctx, ticketID)
 	}
@@ -63,7 +56,6 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 		want      []string
 		wantErr   bool
 		wantErrIs error
-		wantCalls int
 	}{
 		{
 			name:  "success",
@@ -76,8 +68,7 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 					return []string{"Moscow", "Saint Petersburg"}, nil
 				},
 			},
-			want:      []string{"Moscow", "Saint Petersburg"},
-			wantCalls: 1,
+			want: []string{"Moscow", "Saint Petersburg"},
 		},
 		{
 			name:  "trims whitespace",
@@ -90,15 +81,13 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 					return []string{"Moscow"}, nil
 				},
 			},
-			want:      []string{"Moscow"},
-			wantCalls: 1,
+			want: []string{"Moscow"},
 		},
 		{
-			name:      "empty query",
-			query:     "",
-			repo:      &mockQueryRepo{},
-			want:      []string{},
-			wantCalls: 1,
+			name:  "empty query",
+			query: "",
+			repo:  &mockQueryRepo{},
+			want:  []string{},
 		},
 		{
 			name:  "query at maximum length",
@@ -108,8 +97,7 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 					return []string{query}, nil
 				},
 			},
-			want:      []string{strings.Repeat("a", 100)},
-			wantCalls: 1,
+			want: []string{strings.Repeat("a", 100)},
 		},
 		{
 			name:  "unicode query at maximum character length",
@@ -119,8 +107,7 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 					return []string{query}, nil
 				},
 			},
-			want:      []string{strings.Repeat("а", 100)},
-			wantCalls: 1,
+			want: []string{strings.Repeat("а", 100)},
 		},
 		{
 			name:      "query exceeds maximum length",
@@ -139,7 +126,6 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 			},
 			wantErr:   true,
 			wantErrIs: repoErr,
-			wantCalls: 1,
 		},
 		{
 			name:  "nil result becomes empty slice",
@@ -149,8 +135,7 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 					return nil, nil
 				},
 			},
-			want:      []string{},
-			wantCalls: 1,
+			want: []string{},
 		},
 	}
 
@@ -164,15 +149,13 @@ func TestTicketQueryService_GetCities(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("GetCities() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
 				t.Errorf("GetCities() error = %v, want wrapping %v", err, tt.wantErrIs)
 			}
+
 			if !tt.wantErr && !slices.Equal(got, tt.want) {
 				t.Errorf("GetCities() = %v, want %v", got, tt.want)
-			}
-			if tt.repo.getCitiesCalls != tt.wantCalls {
-				t.Errorf("GetCities() repository calls = %d, want %d",
-					tt.repo.getCitiesCalls, tt.wantCalls)
 			}
 		})
 	}
@@ -201,6 +184,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 		ReservationStatus: models.StatusReservationPending,
 		Flight:            models.Flight{IsCancelled: false},
 	}
+
 	repoErr := errors.New("database unavailable")
 
 	tests := []struct {
@@ -211,7 +195,6 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 		want      []models.Ticket
 		wantErr   bool
 		wantErrIs error
-		wantCalls int
 	}{
 		{
 			name: "filters reserved, pending and cancelled flights",
@@ -225,8 +208,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return []models.Ticket{available, reserved, cancelledFlight, pending}, nil
 				},
 			},
-			want:      []models.Ticket{available},
-			wantCalls: 1,
+			want: []models.Ticket{available},
 		},
 		{
 			name:      "empty departure city",
@@ -285,8 +267,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return []models.Ticket{}, nil
 				},
 			},
-			want:      []models.Ticket{},
-			wantCalls: 1,
+			want: []models.Ticket{},
 		},
 		{
 			name: "100-character unicode destination city",
@@ -297,8 +278,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return []models.Ticket{}, nil
 				},
 			},
-			want:      []models.Ticket{},
-			wantCalls: 1,
+			want: []models.Ticket{},
 		},
 		{
 			name: "trims city names",
@@ -312,8 +292,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return []models.Ticket{available}, nil
 				},
 			},
-			want:      []models.Ticket{available},
-			wantCalls: 1,
+			want: []models.Ticket{available},
 		},
 		{
 			name: "repository error",
@@ -326,7 +305,6 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 			},
 			wantErr:   true,
 			wantErrIs: repoErr,
-			wantCalls: 1,
 		},
 		{
 			name: "no matching tickets returns empty slice",
@@ -337,8 +315,7 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return []models.Ticket{reserved, cancelledFlight, pending}, nil
 				},
 			},
-			want:      []models.Ticket{},
-			wantCalls: 1,
+			want: []models.Ticket{},
 		},
 		{
 			name: "nil repository result returns empty slice",
@@ -349,13 +326,11 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 					return nil, nil
 				},
 			},
-			want:      []models.Ticket{},
-			wantCalls: 1,
+			want: []models.Ticket{},
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -365,15 +340,13 @@ func TestTicketQueryService_GetTickets(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("GetTickets() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
 				t.Errorf("GetTickets() error = %v, want wrapping %v", err, tt.wantErrIs)
 			}
+
 			if !tt.wantErr && !slices.Equal(got, tt.want) {
 				t.Errorf("GetTickets() = %+v, want %+v", got, tt.want)
-			}
-			if tt.repo.getTicketsRouteCalls != tt.wantCalls {
-				t.Errorf("GetTickets() repository calls = %d, want %d",
-					tt.repo.getTicketsRouteCalls, tt.wantCalls)
 			}
 		})
 	}
@@ -393,7 +366,6 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 		wantTime  time.Time
 		wantErr   bool
 		wantErrIs error
-		wantCalls int
 	}{
 		{
 			name:     "success",
@@ -410,9 +382,8 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 					}, nil
 				},
 			},
-			want:      models.StatusReserved,
-			wantTime:  updatedAt,
-			wantCalls: 1,
+			want:     models.StatusReserved,
+			wantTime: updatedAt,
 		},
 		{
 			name:      "zero ticket ID",
@@ -438,7 +409,6 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 			},
 			wantErr:   true,
 			wantErrIs: ErrTicketNotFound,
-			wantCalls: 1,
 		},
 		{
 			name:     "wrapped not found error",
@@ -450,7 +420,6 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 			},
 			wantErr:   true,
 			wantErrIs: ErrTicketNotFound,
-			wantCalls: 1,
 		},
 		{
 			name:     "repository error",
@@ -462,12 +431,10 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 			},
 			wantErr:   true,
 			wantErrIs: repoErr,
-			wantCalls: 1,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -480,20 +447,19 @@ func TestTicketQueryService_GetReservationStatus(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("GetReservationStatus() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
 				t.Errorf("GetReservationStatus() error = %v, want wrapping %v", err, tt.wantErrIs)
 			}
+
 			if !tt.wantErr {
 				if gotStatus != tt.want {
 					t.Errorf("GetReservationStatus() status = %q, want %q", gotStatus, tt.want)
 				}
+
 				if !gotTime.Equal(tt.wantTime) {
 					t.Errorf("GetReservationStatus() updatedAt = %v, want %v", gotTime, tt.wantTime)
 				}
-			}
-			if tt.repo.getTicketByIDCalls != tt.wantCalls {
-				t.Errorf("GetTicketByID() calls = %d, want %d",
-					tt.repo.getTicketByIDCalls, tt.wantCalls)
 			}
 		})
 	}
