@@ -1,3 +1,5 @@
+# CHANGE_ME
+
 http:
   address: ":8080"
   read_timeout: 5s
