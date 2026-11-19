@@ -12,7 +12,7 @@ postgres:
 
 kafka:
   brokers: []
-  reserve_topic: ""
-  cancel_topic: ""
-  reservation_status_topic: ""
-  group_id: ""
+  reserve_topic: "ticket.reserve"
+  cancel_topic: "ticket.cancel"
+  reservation_status_topic: "ticket.reservation-status"
+  group_id: "avia-service"

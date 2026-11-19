@@ -11,7 +11,7 @@ FROM scratch
 WORKDIR /app
 
 COPY --from=builder /out/avia /app/avia
-COPY --from=builder /src/config/dev.yaml /app/config/dev.yaml
+COPY --from=builder /src/config/dev.yaml.example /app/config/dev.yaml
 COPY --from=builder /src/migrations /app/migrations
 
 ENV CONFIG_PATH=/app/config/dev.yaml

@@ -62,8 +62,6 @@ func New(configPath string) (*App, error) {
 	if len(cfg.Kafka.Brokers) != 0 {
 		kafkaApp = kafkaapp.New(cfg.Kafka, ticketCommandService, logger)
 	}
-	// TODO: когда будет кафка нужно будет переписать
-
 	return &App{
 		httpApp:  httpApp,
 		kafkaApp: kafkaApp,
@@ -101,8 +99,6 @@ func (a *App) Run(ctx context.Context) error {
 			return nil
 		})
 	}
-	// TODO: когда будет кафка нужно будет переписать
-
 	g.Go(func() error {
 		<-ctx.Done()
 
@@ -118,8 +114,10 @@ func (a *App) Run(ctx context.Context) error {
 	err := g.Wait()
 
 	// Здесь обе основные задачи уже завершились.
-	if shutdownErr := a.kafkaApp.Shutdown(); shutdownErr != nil {
-		err = errors.Join(err, shutdownErr)
+	if a.kafkaApp != nil {
+		if shutdownErr := a.kafkaApp.Shutdown(); shutdownErr != nil {
+			err = errors.Join(err, shutdownErr)
+		}
 	}
 
 	if a.dbPool != nil {

@@ -75,11 +75,9 @@ func Load(path string) (*Config, error) {
 		cfg.Postgres.ConnectTimeout = 5 * time.Second
 	}
 
-	// Kafka
-	// if len(cfg.Kafka.Brokers) == 0 {
-	// 	return nil, fmt.Errorf("kafka brokers must be configured")
-	// }
-	// TODO: когда будет кафка надо убрать
+	if broker := os.Getenv("KAFKA_BROKER"); broker != "" {
+		cfg.Kafka.Brokers = []string{broker}
+	}
 
 	return &cfg, nil
 }
